@@ -100,3 +100,9 @@ class ChatAgent:
         ):
             if metadata.get("tags") and "final_node" in metadata["tags"]:
                 yield message.content
+    
+    async def get_response(self, user_input: str, thread_id: str):
+        state = {"messages" : [HumanMessage(content=user_input)]}
+        final_state = await self.graph.ainvoke(state, config={"configurable": {"thread_id": thread_id}})
+        last_message = final_state["messages"][-1]
+        return last_message.content

@@ -25,9 +25,16 @@ async def generator(query: str, session_id: str, llm):
     async for message in agent.get_streaming_response(user_input=query, thread_id=session_id):
         yield f"data: {message}\n\n"
 
+@app.post("/chat/stream")
+async def streaming(query: QueryInput, llm = Depends(get_llm)):
+    return StreamingResponse(generator(query=query.question, session_id=query.session_id, llm=llm), media_type="text/event_stream")
+
 @app.post("/chat")
-async def root(query: QueryInput, graph = Depends(get_graph), llm = Depends(get_llm)):
-    return StreamingResponse(generator(query=query.question, session_id=query.session_id, llm=llm, graph=graph), media_type="text/event_stream")
+async def root(query: QueryInput, llm = Depends(get_llm)):
+    tool = get_graph_qa_tool()
+    agent = await ChatAgent.create(llm, [tool])
+    response = await agent.get_response(user_input=query.question, thread_id=query.session_id)
+    return response
 
 # chat_sessions= {}
 
